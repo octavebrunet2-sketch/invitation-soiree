@@ -125,7 +125,7 @@
       <!-- Étape 2 : date + téléphone -->
       <div class="step" data-step>
         <label class="q">Tes infos 📇</label>
-        <p class="hint">Tu recevras un mail de confirmation.</p>
+        <p class="hint">Tu recevras une confirmation par mail et par WhatsApp.</p>
         <div class="field">
           <label for="naissance">Date de naissance *</label>
           <input id="naissance" name="naissance" type="date" required>
@@ -234,7 +234,7 @@
   // ====== CONFIGURATION ======
   const CONFIG = {
     nomSoiree: "Soirée chez Octave",
-    infos: "Samedi 25 octobre · 21h · Confirme ta venue en 1 minute",
+    infos: "Samedi 25 octobre · 21h",
     // Ton numéro WhatsApp au format international SANS + ni espaces (ex : 33612345678)
     whatsappOrganisateur: "33766565885",
     // Ton pseudo Snapchat (pour que les invités sachent à qui envoyer)
@@ -247,7 +247,7 @@
   // ===========================
 
   document.getElementById("partyName").textContent = CONFIG.nomSoiree;
-  document.getElementById("partyInfo").textContent = CONFIG.infos;
+  document.getElementById("partyInfo").textContent = `${CONFIG.infos} · Confirme ta venue en 1 minute`;
   const pageUrl = CONFIG.lienPage || location.href.split("#")[0];
 
   const form = document.getElementById("form");
@@ -342,10 +342,21 @@
     document.getElementById("done").style.display = "block";
     document.getElementById("doneName").textContent = f.prenom.value.trim();
     document.getElementById("recap").textContent = message;
-    sendConfirmation(f.email.value.trim(), `${f.prenom.value.trim()} ${f.nom.value.trim()}`);
+    sendConfirmation(f.email.value.trim(), `${f.prenom.value.trim()} ${f.nom.value.trim()}`, f.prenom.value.trim(), f.tel.value.trim());
   }
 
-  async function sendConfirmation(email, nomComplet) {
+  // 06 12 34 56 78 -> 33612345678 (format wa.me)
+  function numeroWa(tel) {
+    let n = tel.replace(/[^\d+]/g, "");
+    if (n.startsWith("+")) n = n.slice(1);
+    else if (n.startsWith("00")) n = n.slice(2);
+    else if (n.startsWith("0")) n = "33" + n.slice(1);
+    return n;
+  }
+
+  async function sendConfirmation(email, nomComplet, prenom, tel) {
+    const confirmationWa = `https://wa.me/${numeroWa(tel)}?text=${encodeURIComponent(
+      `Salut ${prenom} ! C'est confirmé pour « ${CONFIG.nomSoiree} » (${CONFIG.infos}). A très vite ! 🎉`)}`;
     const status = document.getElementById("mailStatus");
     if (!CONFIG.emailOrganisateur) return;
     status.textContent = "📧 Envoi du mail de confirmation…";
@@ -357,6 +368,7 @@
           name: nomComplet,
           email,
           reponse: message,
+          "Confirmer sur WhatsApp (1 clic)": confirmationWa,
           _subject: `Nouvelle réponse – ${CONFIG.nomSoiree} : ${nomComplet}`,
           _template: "box",
           _captcha: "false",
